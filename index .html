@@ -286,6 +286,7 @@
     let gameState = "menu";       // menu, running, gameover, paused
     let score = 0;
     let highScore = 0;
+    let isNewHighScore = false;
     
     try {
       const saved = localStorage.getItem('flappyHighScore');
@@ -299,6 +300,7 @@
         highScore = score;
         highScoreSpan.innerText = highScore;
         localStorage.setItem('flappyHighScore', highScore);
+        isNewHighScore = true;
       }
     }
     
@@ -341,12 +343,17 @@
       birdVelocity = 0;
       pipes = [];
       currentSpeed = baseSpeed;
-      for(let i=0; i<3; i++) {
+      isNewHighScore = false;
+      gameState = "menu";
+      updateHighScoreUI();
+    }
+    
+    function initPipesForPreview() {
+      pipes = [];
+      for(let i = 0; i < 3; i++) {
         generatePipe();
         pipes[i].x = WIDTH + i * PIPE_SPACING;
       }
-      gameState = "menu";
-      updateHighScoreUI();
     }
     
     function checkCollisions() {
@@ -398,7 +405,7 @@
       if(checkCollisions()) {
         gameState = "gameover";
         playHitSound();
-        cancelAnimation();
+        // No need to cancelAnimation here - loop will continue drawing the static gameover screen
       }
     }
     
@@ -508,6 +515,13 @@
         ctx.font = "28px system-ui";
         ctx.fillStyle = "white";
         ctx.fillText("Score: "+score, WIDTH/2-70, 340);
+        
+        if(isNewHighScore) {
+          ctx.font = "bold 26px system-ui";
+          ctx.fillStyle = "#f7e05e";
+          ctx.fillText("🏆 NEW BEST!", WIDTH/2-105, 385);
+        }
+        
         ctx.font = "20px system-ui";
         ctx.fillStyle = "#eee";
         ctx.fillText("Click Restart or Start", WIDTH/2-120, 450);
@@ -577,9 +591,13 @@
       resetGame();
       gameState = "running";
       currentSpeed = baseSpeed;
-      pipes = [];
-      for(let i=0; i<3; i++) generatePipe();
-      pipes.forEach((p, idx) => { p.x = WIDTH + idx * PIPE_SPACING; });
+      
+      // Fresh pipes for new game
+      for(let i = 0; i < 3; i++) {
+        generatePipe();
+        pipes[i].x = WIDTH + i * PIPE_SPACING;
+      }
+      
       birdY = HEIGHT/2;
       birdVelocity = 0;
       score = 0;
@@ -667,11 +685,12 @@
       restartGameSession();
     });
     pauseResumeBtn.addEventListener('click', () => {
-      if(gameState === "running") pauseGame();
-      else if(gameState === "paused") pauseGame();
+      if(gameState === "running" || gameState === "paused") pauseGame();
     });
     
+    // Initialize
     resetGame();
+    initPipesForPreview();        // Show static pipes in menu for preview
     gameState = "menu";
     startAnimation();
     initAudio();
